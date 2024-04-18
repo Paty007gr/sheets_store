@@ -1,7 +1,13 @@
 name: sheets_store
 description: A simple package that allows you to use Google Sheets 
 version: 1.0.0
-repository: https://github.com/Paty007gr/sheets_database
+repository: https://github.com/Paty007gr/sheets_store
+
+topics:
+  - server
+  - backend
+  - database
+  - spreadsheets
 
 environment:
   sdk: ^3.3.3
