@@ -1,0 +1,16 @@
+name: sheets_database
+description: A simple package that allows you to use Google Sheets 
+version: 1.0.0
+repository: https://github.com/Paty007gr/sheets_database
+
+environment:
+  sdk: ^3.3.3
+
+dependencies:
+  googleapis: ^13.1.0
+  googleapis_auth: ^1.6.0
+  http: ^1.2.1
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0
