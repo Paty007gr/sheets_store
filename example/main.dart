@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:sheets_database/sheets_database.dart';
+import 'package:sheets_store/sheets_store.dart';
 
 Map<String, dynamic> readJsonFile(String filePath) {
   final input = File(filePath).readAsStringSync();

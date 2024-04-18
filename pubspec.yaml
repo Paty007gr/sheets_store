@@ -1,4 +1,4 @@
-name: sheets_database
+name: sheets_store
 description: A simple package that allows you to use Google Sheets 
 version: 1.0.0
 repository: https://github.com/Paty007gr/sheets_database
