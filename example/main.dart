@@ -14,10 +14,11 @@ void main() async {
     'ENTER YOUR SPREADSHEET ID HERE',
     readJsonFile('ENTER YOUR JSON CREDENTIALS FILE HERE'),
   );
-  final testTable = Table<String>(
+  final testTable = SheetColumn<String>(
     column: 'A',
     sheetName: 'Sheet1',
     sheetsClient: client,
+    decodeFunction: (rawValue) => jsonDecode(rawValue),
   );
 
   // Print an element in the table

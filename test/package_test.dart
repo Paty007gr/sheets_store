@@ -15,39 +15,79 @@ void main() async {
     readJsonFile('./secrets/secrets.json')['testSpreadsheetId'],
     readJsonFile('./secrets/credentials.json'),
   );
-  final table =
-      Table<String>(sheetsClient: client, column: 'A', sheetName: 'Users');
+  final sheetColumn = SheetColumn<String>(
+    sheetsClient: client,
+    column: 'A',
+    sheetName: 'Test Sheet',
+    decodeFunction: (json) => jsonDecode(json),
+  );
 
-  test('Test Table.at functionality', () async {
-    expect(await table.at(0), 'Entry1');
+  test('Test SheetColumn.at functionality', () async {
+    expect(await sheetColumn.at(0), 'Entry1');
   });
 
-  test('Test Table.find functionality', () async {
-    expect(await table.find((value, index) => value == 'Entry99'), 'Entry99');
+  test('Test SheetColumn.find functionality', () async {
+    expect(
+      await sheetColumn.find((value, index) => value == 'Entry99'),
+      'Entry99',
+    );
   });
 
-  test('Test Table.getEntries functionality', () async {
-    final entries = await table.getEntries();
-    expect(entries.length, 100);
+  test('Test SheetColumn.getEntries functionality', () async {
+    final entries = await sheetColumn.getEntries();
+    expect(entries.length, 6);
   });
 
-  test('Test Table.set functionality', () async {
+  test('Test SheetColumn.set functionality', () async {
     final randomNumber = DateTime.now().second;
-    expect(await table.set(5, 'Test Entry$randomNumber'), true);
+    expect(await sheetColumn.set(2, 'Test Entry$randomNumber'), true);
   });
 
-  test('Test Table.bulkRead functionality', () async {
-    expect(await table.bulkRead(0, 2), ['Entry1', 'Entry2']);
+  test('Test SheetColumn.delete functionality', () async {
+    expect(await sheetColumn.delete(5), true);
   });
 
-  test('Test Table.bulkSet functionality', () async {
+  test('Test SheetColumn.bulkRead functionality', () async {
+    expect(await sheetColumn.bulkRead(0, 1), ['Entry1', 'Entry99']);
+  });
+
+  test('Test SheetColumn.bulkSet functionality', () async {
     final randomNumber = DateTime.now().second;
     expect(
-      await table.bulkSet(9, [
+      await sheetColumn.bulkSet(3, [
         'Entry$randomNumber',
         'Entry${randomNumber + 1}',
       ]),
       true,
     );
+  });
+
+  test('Test SheetMap', () async {
+    final map = SheetMap<String, num>(
+      client: client,
+      sheetName: 'Test Sheet',
+      keyColumn: 'C',
+      valueColumn: 'D',
+      decodeFunction: (raw) => jsonDecode(raw),
+    );
+
+    await map.set('one', 1);
+    await map.set('two', 2);
+    await map.set('three', 3);
+    await map.set('four', 4);
+
+    expect(await map.get('one'), 1);
+    expect(await map.get('two'), 2);
+    expect(await map.get('three'), 3);
+    expect(await map.get('four'), 4);
+
+    expect(await map.has('one'), true);
+    expect(await map.has('random'), false);
+
+    expect(await map.allKeys(), ['one', 'two', 'three', 'four']);
+    expect(await map.allValues(), [1, 2, 3, 4]);
+
+    expect(await map.delete('four'), true);
+    expect(await map.delete('random'), false);
   });
 }
