@@ -143,8 +143,7 @@ class Table<T> {
   Future<bool> writeRange(String range, List<String> values) async {
     notationCheck(range);
 
-    List<List<String>> formattedValues =
-        values.map((e) => [jsonEncode(e)]).toList();
+    List<List<String>> formattedValues = values.map((e) => [e]).toList();
 
     final res = await sheetsClient.sheets.spreadsheets.values.update(
       ValueRange(
