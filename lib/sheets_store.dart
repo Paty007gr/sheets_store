@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:googleapis/shared.dart';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/sheets/v4.dart';
 
@@ -52,8 +51,11 @@ class SheetInteractionHandler {
   Future<bool> clearRange(String range) async {
     notationCheck(range);
 
-    // How tf do you not use this $Empty class????
-    final res = await spreadsheetValues.clear($Empty(), spreadsheetId, range);
+    final res = await spreadsheetValues.clear(
+      ClearValuesRequest(),
+      spreadsheetId,
+      range,
+    );
 
     return res.clearedRange != null;
   }
