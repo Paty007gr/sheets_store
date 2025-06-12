@@ -2,9 +2,12 @@ An easy to use and simple way to store data in google sheets
 
 ## Usage
 
-To use this package you first need to set up a google cloud project. Then enable the Google Sheets API in the APIs & Services. Once you have done that go to credentials and create a service account with a JSON key. Put the JSON key in your workspace directory. Remember to use .gitignore if you are uploading your code to github or sharing your project with anyone else.
+To use this package you first need to set up a google cloud project. Then enable the Google Sheets API in the APIs & Services. Once you have done that go to credentials and create a service account with a JSON key. Put the JSON key in your workspace directory. 
 
-Create a spreadsheet in google drive and share it with your service account. Then go into your code and use the code below to initiate a `SheetsClient`.
+#### Remember!
+Use .gitignore if you are uploading your code to github or sharing your project with anyone else.
+
+Create a spreadsheet in google drive and **share it with your service account.** Then go into your code and use the code below to initiate a `SheetsClient`.
 
 ```dart
 import 'dart:convert';
@@ -27,16 +30,44 @@ final client = await SheetsClient.fromServiceAccountCredentials(
   );
 ```
 
-With the `SheetsClient` you can create tables, the package's representation of columns. They function pretty much like giant arrays. To create one use the code below.
+## Columns
+
+To control a column in your sheet initialize a new `SheetColumn` as shown in the example below.
 
 ```dart
-// here we are creating a table (aka a column) that will be filled with string values
-// but it can really be anything that jsonEncode can actually encode
-final table = Table<String>(
-    column: 'Column of choice here',
-    sheetName: 'Whatever your sheet\'s name is, something like Sheet1',
-    sheetsClient: client,
+final myColumn = SheetColumn<String>(
+  sheetsClient: client,
+  column: 'A',
+  sheetName: 'Test Sheet',
 );
 ```
 
-Using tables you can read and write to a sheet. See the example given for the complete code.
+## Maps
+
+These are the google sheets equivalent of a dart `Map`. Initialize as shown in the example below.
+
+```dart
+final map = SheetMap<String, num>(
+  client: client,
+  sheetName: 'Test Sheet',
+  keyColumn: 'C',
+  valueColumn: 'D',
+);
+```
+
+### Todo:
+
+#### Functions to add to SheetMap
+- containsKey
+
+#### Functions to add to SheetTable
+- findValue
+- findKey
+- hasKey
+- valuesOfKeys: returns the values for the list of keys given
+
+- Remove keys
+- Remove values
+- Clear table (Aka clear sheet)
+- Remove rows
+ 

@@ -19,7 +19,6 @@ void main() async {
     sheetsClient: client,
     column: 'A',
     sheetName: 'Test Sheet',
-    decodeFunction: (json) => jsonDecode(json),
   );
 
   test('Test SheetColumn.at functionality', () async {
@@ -68,7 +67,6 @@ void main() async {
       sheetName: 'Test Sheet',
       keyColumn: 'C',
       valueColumn: 'D',
-      decodeFunction: (raw) => jsonDecode(raw),
     );
 
     await map.set('one', 1);
@@ -89,5 +87,48 @@ void main() async {
 
     expect(await map.delete('four'), true);
     expect(await map.delete('random'), false);
+  });
+
+  test('Test SheetTable', () async {
+    final table = SheetTable(
+      client: client,
+      sheetName: 'Table',
+    );
+
+    final dummyData = {
+      "a": 1,
+      "b": 2,
+      "c": 3,
+      "e": 4,
+      "f": 5,
+    };
+
+    expect(await table.append(dummyData), 1); // Write test
+
+    final dummyKey = {"1": 2, "4": true, "6": 4};
+    final dummyEntry = {"1": 2, "9": true, "3": 4};
+    // complex type write test
+    expect(await table.append({dummyKey: dummyEntry}), 2);
+    expect(await table.append({'futureTest': 69}), 3);
+
+    expect(await table.at(1), dummyData); // Read test
+
+    // set/update test
+    expect(await table.update(3, dummyData), true);
+    // verify write test
+    expect(await table.at(3), {
+      "a": 1,
+      "b": 2,
+      "c": 3,
+      "e": 4,
+      "f": 5,
+      'futureTest': 69,
+    });
+
+    expect(await table.appendAtKey("b", [5, 6, 7, 26, 24]), true);
+    // include writes from above
+    expect(await table.valuesOfKey("b"), [2, 2, 5, 6, 7, 26, 24]);
+
+    expect(await table.pick('a', 1), 1);
   });
 }

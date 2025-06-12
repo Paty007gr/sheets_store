@@ -1,6 +1,6 @@
 name: sheets_store
 description: A simple package that allows you to use Google Sheets as cloud storage for your app.
-version: 2.0.0
+version: 2.1.0
 repository: https://github.com/Paty007gr/sheets_store
 
 topics:
