@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:googleapis_auth/auth_io.dart';
 import 'package:googleapis/sheets/v4.dart';
 
@@ -77,13 +76,13 @@ class SheetInteractionHandler {
   });
 
   /// Clears a single range and returns whether it was a success
+  ///
+  /// *Sheet name does not need to be provided*
   Future<bool> clearRange(String range) async {
-    notationCheck(range);
-
     final res = await spreadsheetValues.clear(
       ClearValuesRequest(),
       spreadsheetId,
-      range,
+      '$sheetName!$range',
     );
 
     return res.clearedRange != null;
@@ -195,7 +194,8 @@ class SheetInteractionHandler {
     return res.updates?.updatedCells != null ? true : false;
   }
 
-  /// Check if a string is A1 notation valid. If so, throw an error
+  /// Check if a string is A1 notation valid
+  /// without it's sheet name. If so, throw an error
   void notationCheck(String input) {
     if (noSheetA1.hasMatch(input)) return;
 
@@ -247,6 +247,11 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
   String _encode(T value) {
     if (encodeFunction != null) return encodeFunction!(value);
     return jsonEncode(value);
+  }
+
+  Future<int> get length async {
+    final allEntries = await getEntries();
+    return allEntries.length;
   }
 
   /// Retrieves the item at the specified index (Row).
@@ -389,8 +394,8 @@ class SheetMap<K extends Object, V extends Object>
     return success;
   }
 
-  /// Updates a value if the key is already in the map otherwise it will
-  /// a new entry
+  /// Updates a value if the key is already in the map
+  /// otherwise it will add a new entry
   Future<bool> set(K key, V value) async {
     final encodedKey = _encode(key);
     final encodedValue = _encode(value);
@@ -422,6 +427,7 @@ class SheetMap<K extends Object, V extends Object>
     return _decode(raw);
   }
 
+  /// Whether the map contains a key
   Future<bool> has(K key) async => await _indexOfKey(key) > -1;
 
   Future<List<K>> allKeys([K Function(String rawValue)? decode]) async {
@@ -468,7 +474,7 @@ class SheetTable<K extends Object?, V extends Object?>
 
   Future<List<String>> _getEncodedKeys() async {
     // Read all cells of first row
-    final res = await client.sheets.spreadsheets.values.get(
+    final res = await spreadsheetValues.get(
       spreadsheetId,
       '$sheetName!A1:1',
       majorDimension: 'ROWS',
@@ -488,7 +494,7 @@ class SheetTable<K extends Object?, V extends Object?>
   /// Respective Columns: A, B, C, D
   ///
   /// Function Returns: {"name": "A", "lastName": "B", "age": "C", "phone": "D"}
-  Future<Map<String, String>> getAssignedKeys() async {
+  Future<Map<String, String>> getKeyAssignments() async {
     Map<String, String> assignedKeys = {};
 
     final encodedKeys = await _getEncodedKeys();
@@ -521,7 +527,7 @@ class SheetTable<K extends Object?, V extends Object?>
   /// Converts a kew to its assigned column
   Future<String?> keyToColumn(K key) async {
     final encodedKey = encodeFunction(key);
-    final assignedKeys = await getAssignedKeys();
+    final assignedKeys = await getKeyAssignments();
     return assignedKeys[encodedKey];
   }
 
@@ -571,7 +577,7 @@ class SheetTable<K extends Object?, V extends Object?>
       keysWithTheirAssignedColumns[encodedKeys[i]] = column;
     }
 
-    await client.sheets.spreadsheets.values.batchUpdate(
+    await spreadsheetValues.batchUpdate(
       BatchUpdateValuesRequest(
         data: emptyColumnsPayload,
         valueInputOption: 'USER_ENTERED',
@@ -582,24 +588,26 @@ class SheetTable<K extends Object?, V extends Object?>
     return keysWithTheirAssignedColumns;
   }
 
+  /// Gets the first WRITE-ABLE row
   Future<int> _getFirstFreeRow() async {
-    final res = await client.sheets.spreadsheets.values.get(
+    final res = await spreadsheetValues.get(
       spreadsheetId,
       sheetName,
-      majorDimension: 'ROWS',
+      majorDimension: MajorDimension.rows.name,
     );
 
     if (res.values == null) return 2;
 
+    // Check if there is an empty space between other rows. If not,
+    // then write at the row after the last one
     final firstEmptyRow = res.values!.indexWhere((row) => row.isEmpty);
     if (firstEmptyRow < 0) return res.values!.length + 1;
 
-    // Rows start from 1 so +1
     return firstEmptyRow + 1;
   }
 
   Future<List<String>> _readRow(int row) async {
-    final res = await client.sheets.spreadsheets.values.get(
+    final res = await spreadsheetValues.get(
       spreadsheetId,
       '$sheetName!$row:$row',
       majorDimension: MajorDimension.rows.name,
@@ -609,12 +617,9 @@ class SheetTable<K extends Object?, V extends Object?>
   }
 
   /// Gets all the filled in fields at [row]
-  ///
-  /// Note: The library uses row 1 as the key so
-  /// read functions expect index 1 to be the first entry
-  /// (aka row 2)
   Future<Map<K, V>> at(int row) async {
-    final cells = await _readRow(row + 1);
+    _rowCheck(row);
+    final cells = await _readRow(row);
     final keys = await _getEncodedKeys();
 
     Map<String, String> stringifiedRow = {};
@@ -632,11 +637,11 @@ class SheetTable<K extends Object?, V extends Object?>
   /// Get a specific value at a specific row from a specific key
   // Name might change but it's kinda silly icl
   Future<V?> pick(K key, int row) async {
+    _rowCheck(row);
     final column = await keyToColumn(key);
-    final offsetRow = row + 1; // add offset for key row
     if (column == null) return null;
 
-    final encodedValue = await readCell('$column$offsetRow');
+    final encodedValue = await readCell('$column$row');
     if (encodedValue == null) return null;
     final decoded = decodeFunction(encodedValue);
 
@@ -665,6 +670,42 @@ class SheetTable<K extends Object?, V extends Object?>
     return decodedValues.where((element) => element != null).cast<V>().toList();
   }
 
+  Future<Map<K, List<V>>?> valuesOfKeys(List<K> keys) async {
+    final keysAsColumns = await getKeyAssignments();
+
+    final res = await spreadsheetValues.batchGet(
+      spreadsheetId,
+      majorDimension: MajorDimension.columns.name,
+      ranges: keys
+          .map(
+            (e) {
+              final encoded = encodeFunction(e);
+              final associatedColumn = keysAsColumns[encoded];
+
+              if (associatedColumn == null) return null;
+              return '$sheetName!${associatedColumn}2:$associatedColumn';
+            },
+          )
+          .whereType<String>()
+          .toList(),
+    );
+
+    if (res.valueRanges == null) return null;
+
+    final map = <K, List<V>>{};
+
+    for (int i = 0; i < res.valueRanges!.length; i++) {
+      final valueRange = res.valueRanges![i];
+      final flattened = explodeValues(valueRange.values).where(
+        (e) => e.isNotEmpty,
+      );
+
+      map[keys[i]] = flattened.map(decodeFunction).cast<V>().toList();
+    }
+
+    return map;
+  }
+
   /// Adds values to a specific key in new rows
   Future<bool> appendAtKey(K key, List<V> values) async {
     final columnOfKey = await keyToColumn(key);
@@ -679,7 +720,7 @@ class SheetTable<K extends Object?, V extends Object?>
 
     final firstFreeRow = await _getFirstFreeRow();
 
-    final res = await client.sheets.spreadsheets.values.batchUpdate(
+    final res = await spreadsheetValues.batchUpdate(
       BatchUpdateValuesRequest(
         data: [
           ValueRange(
@@ -698,9 +739,10 @@ class SheetTable<K extends Object?, V extends Object?>
 
   /// Note: Missing keys will added
   Future<bool> update(int row, Map<K, V> values) async {
+    _rowCheck(row);
     final encoded = _encode(values);
 
-    final assignedKeys = await getAssignedKeys();
+    final assignedKeys = await getKeyAssignments();
     final existingKeys = assignedKeys.keys
         .where(
           (key) => encoded.containsKey(key),
@@ -720,22 +762,23 @@ class SheetTable<K extends Object?, V extends Object?>
       assignedKeys[entry.key] = entry.value;
     }
 
-    // now that we have all the keys that encoded has we can go key by key
+    // now that we have all the keys that [encoded] has we can go key by key
     // and find their respective columns to add their value to. Oh and make
     // batchUpdate request
     final List<ValueRange> payload = [];
 
-    for (MapEntry assignedKey in assignedKeys.entries) {
-      payload.add(ValueRange(
-        // +1 because first row is the object keys
-        range: '$sheetName!${assignedKey.value}${row + 1}',
-        values: [
-          [encoded[assignedKey.key]]
-        ],
-      ));
+    for (MapEntry<String, String> assignedKey in assignedKeys.entries) {
+      payload.add(
+        ValueRange(
+          range: '$sheetName!${assignedKey.value}$row',
+          values: [
+            [encoded[assignedKey.key]]
+          ],
+        ),
+      );
     }
 
-    final res = await client.sheets.spreadsheets.values.batchUpdate(
+    final res = await spreadsheetValues.batchUpdate(
       BatchUpdateValuesRequest(
         data: payload,
         valueInputOption: 'USER_ENTERED',
@@ -750,16 +793,134 @@ class SheetTable<K extends Object?, V extends Object?>
   /// and returns the row the values were appended to
   Future<int> append(Map<K, V> values) async {
     final firstFreeRow = await _getFirstFreeRow();
-    // Here _getFirstFreeRow() already adds +1 which we need to remove
-    // because update() does the same
-    await update(firstFreeRow - 1, values);
+    await update(firstFreeRow, values);
 
-    return firstFreeRow - 1;
+    return firstFreeRow;
   }
-}
 
-Map<String, dynamic> readJsonFile(String filePath) {
-  final input = File(filePath).readAsStringSync();
-  final decoded = jsonDecode(input);
-  return decoded;
+  /// Warning!
+  /// ---
+  /// This function deletes the key AND all associated values
+  Future<bool> deleteKey(K key) async {
+    final column = await keyToColumn(key);
+
+    final didSucceed = await clearRange('$column:$column');
+
+    return didSucceed;
+  }
+
+  /// Clears the whole sheet
+  Future<bool> clear() async {
+    final res = await spreadsheetValues.clear(
+      ClearValuesRequest(),
+      spreadsheetId,
+      sheetName,
+    );
+
+    return res.clearedRange != null;
+  }
+
+  /// Essentially clears a whole row
+  ///
+  /// Note: First row is 2 as row 1 is reserved as the key row
+  Future<bool> deleteEntry(int row) async {
+    _rowCheck(row);
+    final didSucceed = await clearRange('$row:$row');
+
+    return didSucceed;
+  }
+
+  Future<bool> hasKey(K key) async {
+    return await keyToColumn(key) != null;
+  }
+
+  Future<K?> findKey(bool Function(K key) test) async {
+    final allKeys = await getKeyAssignments();
+
+    K? searchHit;
+
+    for (final key in allKeys.keys) {
+      final decoded = decodeFunction(key) as K;
+
+      if (test(decoded)) {
+        searchHit = decoded;
+        break;
+      }
+    }
+
+    return searchHit;
+  }
+
+  // This is essentially a wrapper
+  Future<List<K>> findKeys(bool Function(K key) test) async {
+    final allKeys = await getKeyAssignments();
+    final hits = allKeys.keys.map(decodeFunction).cast<K>().where(test);
+
+    return hits.toList();
+  }
+
+  /// Tests your [test] function against all entries in the table and
+  /// returns the first hit
+  ///
+  /// If no hit exists it returns null
+  Future<Map<K, V>?> findEntry(
+    bool Function(Map<K, V> entry, int row) test,
+  ) async {
+    final allRows = await spreadsheetValues.get(
+      spreadsheetId,
+      sheetName,
+      majorDimension: MajorDimension.rows.name,
+    );
+
+    if (allRows.values == null) return null;
+
+    Map<K, V>? firstHit;
+
+    final keyAssignments = await getKeyAssignments();
+    final decodedKeys =
+        keyAssignments.keys.map(decodeFunction).cast<K>().toList();
+
+    // Start from row 2 (index 1) to avoid the key row (row 1, index 0)
+    for (int i = 1; i < allRows.values!.length; i++) {
+      final encodedEntryValues = allRows.values![i];
+      // A LOT of filtering and we can decode them
+      final decoded = encodedEntryValues
+          .whereType<String>()
+          .where((e) => e.isNotEmpty)
+          .map(decodeFunction)
+          .cast<V>()
+          .toList();
+
+      // Constructed map from decoded values and keys
+      final constructed = <K, V>{};
+
+      for (int j = 0; j < decoded.length; j++) {
+        constructed[decodedKeys[j]] = decoded[j];
+      }
+
+      if (test(constructed, i + 1)) {
+        firstHit = constructed;
+        break;
+      }
+    }
+
+    return firstHit;
+  }
+
+  /// Throw an error if the user attempts to read row 1 (reserved key row)
+  ///
+  /// Note:
+  /// -
+  /// This does not expect rows using 0-based indexes
+  void _rowCheck(int row) {
+    if (row < 2) {
+      throw ArgumentError.value(
+        row,
+        'row',
+        'Cannot read/write at rows 1 or below. Given row',
+      );
+    }
+
+    return;
+  }
 }

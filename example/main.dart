@@ -21,10 +21,10 @@ void main() async {
     decodeFunction: (rawValue) => jsonDecode(rawValue),
   );
 
-  // Print an element in the table
+  // Print an element in the column
   final firstRowElement = await testTable.at(0);
   print(firstRowElement);
 
-  // Write to the table
+  // Write to the column
   testTable.set(1, 'Hello World');
 }

@@ -21,41 +21,28 @@ void main() async {
     sheetName: 'Test Sheet',
   );
 
-  test('Test SheetColumn.at functionality', () async {
+  test('Test SheetColumn', () async {
     expect(await sheetColumn.at(0), 'Entry1');
-  });
 
-  test('Test SheetColumn.find functionality', () async {
     expect(
       await sheetColumn.find((value, index) => value == 'Entry99'),
       'Entry99',
     );
-  });
 
-  test('Test SheetColumn.getEntries functionality', () async {
-    final entries = await sheetColumn.getEntries();
-    expect(entries.length, 6);
-  });
+    expect(await sheetColumn.length, 5);
 
-  test('Test SheetColumn.set functionality', () async {
     final randomNumber = DateTime.now().second;
     expect(await sheetColumn.set(2, 'Test Entry$randomNumber'), true);
-  });
 
-  test('Test SheetColumn.delete functionality', () async {
     expect(await sheetColumn.delete(5), true);
-  });
 
-  test('Test SheetColumn.bulkRead functionality', () async {
     expect(await sheetColumn.bulkRead(0, 1), ['Entry1', 'Entry99']);
-  });
 
-  test('Test SheetColumn.bulkSet functionality', () async {
-    final randomNumber = DateTime.now().second;
+    final randomNum2 = DateTime.now().second;
     expect(
       await sheetColumn.bulkSet(3, [
-        'Entry$randomNumber',
-        'Entry${randomNumber + 1}',
+        'Entry$randomNum2',
+        'Entry${randomNum2 + 1}',
       ]),
       true,
     );
@@ -95,33 +82,35 @@ void main() async {
       sheetName: 'Table',
     );
 
+    await table.clear();
+
     final dummyData = {
       "a": 1,
       "b": 2,
       "c": 3,
-      "e": 4,
-      "f": 5,
+      "d": 4,
+      "e": 5,
     };
 
-    expect(await table.append(dummyData), 1); // Write test
+    expect(await table.append(dummyData), 2); // Write test
 
     final dummyKey = {"1": 2, "4": true, "6": 4};
     final dummyEntry = {"1": 2, "9": true, "3": 4};
     // complex type write test
-    expect(await table.append({dummyKey: dummyEntry}), 2);
-    expect(await table.append({'futureTest': 69}), 3);
+    expect(await table.append({dummyKey: dummyEntry}), 3);
+    expect(await table.append({'futureTest': 69}), 4);
 
-    expect(await table.at(1), dummyData); // Read test
+    expect(await table.at(2), dummyData); // Read test
 
     // set/update test
-    expect(await table.update(3, dummyData), true);
+    expect(await table.update(4, dummyData), true);
     // verify write test
-    expect(await table.at(3), {
+    expect(await table.at(4), {
       "a": 1,
       "b": 2,
       "c": 3,
-      "e": 4,
-      "f": 5,
+      "d": 4,
+      "e": 5,
       'futureTest': 69,
     });
 
@@ -129,6 +118,47 @@ void main() async {
     // include writes from above
     expect(await table.valuesOfKey("b"), [2, 2, 5, 6, 7, 26, 24]);
 
-    expect(await table.pick('a', 1), 1);
+    expect(await table.pick('a', 2), 1);
+
+    expect(await table.append({'nullValue': null}), 10);
+    expect(await table.at(10), {'nullValue': null});
+
+    expect(await table.valuesOfKeys(['a', 'b', 'futureTest', 'nullValue']), {
+      'a': [1, 1],
+      'b': [2, 2, 5, 6, 7, 26, 24],
+      'futureTest': [69],
+      'nullValue': [null],
+    });
+
+    expect(await table.deleteKey('futureTest'), true);
+    expect(await table.hasKey('futureTest'), false);
+
+    predicate(key) => key.runtimeType == String;
+
+    expect(await table.findKey(predicate), 'a');
+
+    expect(await table.findKeys(predicate), [
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+      'nullValue',
+    ]);
+
+    final searchingFor = {
+      'a': 1,
+      'b': 2,
+      'c': 3,
+      'd': 4,
+      'e': 5,
+    };
+    expect(
+      await table.findEntry(
+        (entry, index) =>
+            entry.toString() == searchingFor.toString() && index > 2,
+      ),
+      searchingFor,
+    );
   });
 }
