@@ -14,7 +14,7 @@ enum MajorDimension {
 
 String base10Convert(int value, String baseDigits) {
   if (value < 0) {
-    throw ArgumentError.value(value, 'value', 'Must be non‑negative');
+    throw ArgumentError.value(value, 'value', 'Must be non-negative');
   }
 
   // we'll do a do‑while so that 0 → A comes out right
@@ -48,7 +48,9 @@ class SheetsClient {
 
   /// Use Service Credentials to get authenticated
   static Future<SheetsClient> fromServiceAccountCredentials(
-      String targetSpreadsheetId, Object? jsonCredentials) async {
+    String targetSpreadsheetId,
+    Object? jsonCredentials,
+  ) async {
     final accountCredentials = ServiceAccountCredentials.fromJson(
       jsonCredentials,
     );
@@ -124,8 +126,10 @@ class SheetInteractionHandler {
 
   /// Returns the contents of a selected range of cells.
   /// Excludes all null cells.
-  Future<List<List<String>>> readRange(String range,
-      {MajorDimension dimension = MajorDimension.columns}) async {
+  Future<List<List<String>>> readRange(
+    String range, {
+    MajorDimension dimension = MajorDimension.columns,
+  }) async {
     notationCheck(range);
 
     final res = await spreadsheetValues.get(
@@ -163,15 +167,15 @@ class SheetInteractionHandler {
   }
 
   /// Writes the passed values to the range given.
-  Future<bool> writeRange(String range, List<List<String>> values,
-      {MajorDimension majorDimension = MajorDimension.columns}) async {
+  Future<bool> writeRange(
+    String range,
+    List<List<String>> values, {
+    MajorDimension majorDimension = MajorDimension.columns,
+  }) async {
     notationCheck(range);
 
     final res = await spreadsheetValues.update(
-      ValueRange(
-        values: values,
-        majorDimension: majorDimension.name,
-      ),
+      ValueRange(values: values, majorDimension: majorDimension.name),
       valueInputOption: "USER_ENTERED",
       spreadsheetId,
       '$sheetName!$range',
@@ -182,10 +186,7 @@ class SheetInteractionHandler {
 
   Future<bool> appendAtRange(String range, List<List<String>> values) async {
     final res = await spreadsheetValues.append(
-      ValueRange(
-        values: values,
-        majorDimension: 'COLUMNS',
-      ),
+      ValueRange(values: values, majorDimension: 'COLUMNS'),
       spreadsheetId,
       '$sheetName!$range',
       valueInputOption: "USER_ENTERED",
@@ -230,9 +231,9 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
     this.encodeFunction,
     required super.sheetName,
   }) : super(
-          spreadsheetId: sheetsClient.ssId,
-          spreadsheetValues: sheetsClient.sheets.spreadsheets.values,
-        );
+         spreadsheetId: sheetsClient.ssId,
+         spreadsheetValues: sheetsClient.sheets.spreadsheets.values,
+       );
 
   final SheetsClient sheetsClient;
   final String column;
@@ -284,8 +285,9 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
 
   /// Read multiple cells at once
   Future<List<T>> bulkRead(int startIndex, int endIndex) async {
-    final inData =
-        await readRange('$column${startIndex + 1}:$column${endIndex + 1}');
+    final inData = await readRange(
+      '$column${startIndex + 1}:$column${endIndex + 1}',
+    );
     final flattened = inData.expand((element) => element).toList();
 
     final flat = flattened.map((e) => _decode(e)).toList();
@@ -297,7 +299,7 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
   Future<bool> bulkSet(int startIndex, List<T> values) async {
     final encoded = values.map((e) => _encode(e)).toList();
     final formatted = [
-      [...encoded]
+      [...encoded],
     ];
 
     final res = await writeRange('$column${startIndex + 1}', formatted);
@@ -311,8 +313,9 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
 
     if (entries.isEmpty) return [];
 
-    final filtered =
-        entries.whereType<String>().where((element) => element.isNotEmpty);
+    final filtered = entries.whereType<String>().where(
+      (element) => element.isNotEmpty,
+    );
 
     return filtered.map((e) => _decode(e)).cast<T>().toList();
   }
@@ -322,7 +325,7 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
     final encoded = _encode(value);
 
     final res = await writeRange('$column${index + 1}', [
-      [encoded]
+      [encoded],
     ]);
 
     return res;
@@ -330,9 +333,7 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
 
   /// Deletes an entry and returns true if the entry existed
   Future<bool> delete(int index) async {
-    final success = await clearRange(
-      '$column${index + 1}',
-    );
+    final success = await clearRange('$column${index + 1}');
     return success;
   }
 
@@ -340,7 +341,7 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
   Future<bool> append(T value) async {
     final encoded = _encode(value);
     final res = await appendAtRange(column, [
-      [encoded]
+      [encoded],
     ]);
 
     return res;
@@ -369,9 +370,9 @@ class SheetMap<K extends Object, V extends Object>
     this.decodeFunction,
     this.encodeFunction,
   }) : super(
-          spreadsheetId: client.ssId,
-          spreadsheetValues: client.sheets.spreadsheets.values,
-        );
+         spreadsheetId: client.ssId,
+         spreadsheetValues: client.sheets.spreadsheets.values,
+       );
 
   V _decode(String value) {
     if (decodeFunction != null) return decodeFunction!(value);
@@ -402,18 +403,15 @@ class SheetMap<K extends Object, V extends Object>
 
     final keyIndex = await _indexOfKey(key);
     if (keyIndex < 0) {
-      return await appendAtRange(
-        '$keyColumn:$keyColumn',
-        [
-          [encodedKey], // Key Column
-          [encodedValue],
-        ],
-      );
+      return await appendAtRange('$keyColumn:$keyColumn', [
+        [encodedKey], // Key Column
+        [encodedValue],
+      ]);
     }
 
     // Update key value
     return await writeRange('$valueColumn${keyIndex + 1}', [
-      [encodedValue]
+      [encodedValue],
     ]);
   }
 
@@ -462,9 +460,9 @@ class SheetTable<K extends Object?, V extends Object?>
     this.decodeFunction = jsonDecode,
     this.encodeFunction = jsonEncode,
   }) : super(
-          spreadsheetId: client.ssId,
-          spreadsheetValues: client.sheets.spreadsheets.values,
-        );
+         spreadsheetId: client.ssId,
+         spreadsheetValues: client.sheets.spreadsheets.values,
+       );
 
   final SheetsClient client;
   final Object? Function(String rawValue) decodeFunction;
@@ -545,8 +543,9 @@ class SheetTable<K extends Object?, V extends Object?>
     }
 
     // first safe (empty) cell index we can use
-    final safeOffset =
-        emptyColumnIndexes.isEmpty ? keyRow.length : emptyColumnIndexes.first;
+    final safeOffset = emptyColumnIndexes.isEmpty
+        ? keyRow.length
+        : emptyColumnIndexes.first;
 
     // this is the payload passed in the batchUpdate request that
     // contains all the ranges with their data to be updated
@@ -567,12 +566,14 @@ class SheetTable<K extends Object?, V extends Object?>
 
       final column = base10Convert(columnIndex, base24);
 
-      emptyColumnsPayload.add(ValueRange(
-        range: '$sheetName!${column}1',
-        values: [
-          [encodedKeys[i]]
-        ],
-      ));
+      emptyColumnsPayload.add(
+        ValueRange(
+          range: '$sheetName!${column}1',
+          values: [
+            [encodedKeys[i]],
+          ],
+        ),
+      );
 
       keysWithTheirAssignedColumns[encodedKeys[i]] = column;
     }
@@ -653,19 +654,15 @@ class SheetTable<K extends Object?, V extends Object?>
     final columnOfKey = await keyToColumn(key);
 
     if (columnOfKey == null) {
-      throw ArgumentError.value(
-        columnOfKey,
-        "key",
-        "Key does not exist",
-      );
+      throw ArgumentError.value(columnOfKey, "key", "Key does not exist");
     }
 
     final encodedValues = await readColumn(columnOfKey);
 
     // decode only values and skip index 0 (first row/key)
-    final decodedValues = encodedValues.sublist(1).map(
-          (e) => e.isNotEmpty ? decodeFunction(e) : null,
-        );
+    final decodedValues = encodedValues
+        .sublist(1)
+        .map((e) => e.isNotEmpty ? decodeFunction(e) : null);
 
     return decodedValues.where((element) => element != null).cast<V>().toList();
   }
@@ -677,15 +674,13 @@ class SheetTable<K extends Object?, V extends Object?>
       spreadsheetId,
       majorDimension: MajorDimension.columns.name,
       ranges: keys
-          .map(
-            (e) {
-              final encoded = encodeFunction(e);
-              final associatedColumn = keysAsColumns[encoded];
+          .map((e) {
+            final encoded = encodeFunction(e);
+            final associatedColumn = keysAsColumns[encoded];
 
-              if (associatedColumn == null) return null;
-              return '$sheetName!${associatedColumn}2:$associatedColumn';
-            },
-          )
+            if (associatedColumn == null) return null;
+            return '$sheetName!${associatedColumn}2:$associatedColumn';
+          })
           .whereType<String>()
           .toList(),
     );
@@ -696,9 +691,9 @@ class SheetTable<K extends Object?, V extends Object?>
 
     for (int i = 0; i < res.valueRanges!.length; i++) {
       final valueRange = res.valueRanges![i];
-      final flattened = explodeValues(valueRange.values).where(
-        (e) => e.isNotEmpty,
-      );
+      final flattened = explodeValues(
+        valueRange.values,
+      ).where((e) => e.isNotEmpty);
 
       map[keys[i]] = flattened.map(decodeFunction).cast<V>().toList();
     }
@@ -711,11 +706,7 @@ class SheetTable<K extends Object?, V extends Object?>
     final columnOfKey = await keyToColumn(key);
 
     if (columnOfKey == null) {
-      throw ArgumentError.value(
-        columnOfKey,
-        "key",
-        "Key does not exist",
-      );
+      throw ArgumentError.value(columnOfKey, "key", "Key does not exist");
     }
 
     final firstFreeRow = await _getFirstFreeRow();
@@ -744,15 +735,11 @@ class SheetTable<K extends Object?, V extends Object?>
 
     final assignedKeys = await getKeyAssignments();
     final existingKeys = assignedKeys.keys
-        .where(
-          (key) => encoded.containsKey(key),
-        )
+        .where((key) => encoded.containsKey(key))
         .toList();
 
     final missingKeys = encoded.keys
-        .where(
-          (key) => !existingKeys.contains(key),
-        )
+        .where((key) => !existingKeys.contains(key))
         .toList();
 
     final missingAssignedKeys = await _addKeysToSheet(missingKeys);
@@ -772,17 +759,14 @@ class SheetTable<K extends Object?, V extends Object?>
         ValueRange(
           range: '$sheetName!${assignedKey.value}$row',
           values: [
-            [encoded[assignedKey.key]]
+            [encoded[assignedKey.key]],
           ],
         ),
       );
     }
 
     final res = await spreadsheetValues.batchUpdate(
-      BatchUpdateValuesRequest(
-        data: payload,
-        valueInputOption: 'USER_ENTERED',
-      ),
+      BatchUpdateValuesRequest(data: payload, valueInputOption: 'USER_ENTERED'),
       spreadsheetId,
     );
 
@@ -877,8 +861,10 @@ class SheetTable<K extends Object?, V extends Object?>
     Map<K, V>? firstHit;
 
     final keyAssignments = await getKeyAssignments();
-    final decodedKeys =
-        keyAssignments.keys.map(decodeFunction).cast<K>().toList();
+    final decodedKeys = keyAssignments.keys
+        .map(decodeFunction)
+        .cast<K>()
+        .toList();
 
     // Start from row 2 (index 1) to avoid the key row (row 1, index 0)
     for (int i = 1; i < allRows.values!.length; i++) {
