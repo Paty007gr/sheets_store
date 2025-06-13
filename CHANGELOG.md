@@ -1,3 +1,7 @@
+## 2.1.1
+
+- Bumped dependencies and dart version (now ^3.8.0)
+
 ## 2.1.0
 
 - New class `SheetTable` look into README for more info
