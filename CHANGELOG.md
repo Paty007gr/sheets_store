@@ -1,3 +1,12 @@
+## 2.1.0
+
+- New class `SheetTable` look into README for more info
+- `SheetColumn` now has a new length getter which asynchronously returns you the length of the column
+- Updated some of the code documentation
+
+Possibly breaking changes:
+- `SheetInteractionHandler.clear` no longer does a notation check and automatically prefixes the sheet name to the range
+
 ## 2.0.0
 
 - New class `SheetMap` that allows you to store data as a map
