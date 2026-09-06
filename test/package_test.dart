@@ -22,6 +22,7 @@ void main() async {
   );
 
   test('Test SheetColumn', () async {
+    expect(await sheetColumn.append('Entry1'), true);
     expect(await sheetColumn.at(0), 'Entry1');
 
     expect(
@@ -77,20 +78,11 @@ void main() async {
   });
 
   test('Test SheetTable', () async {
-    final table = SheetTable(
-      client: client,
-      sheetName: 'Table',
-    );
+    final table = SheetTable(client: client, sheetName: 'Table');
 
     await table.clear();
 
-    final dummyData = {
-      "a": 1,
-      "b": 2,
-      "c": 3,
-      "d": 4,
-      "e": 5,
-    };
+    final dummyData = {"a": 1, "b": 2, "c": 3, "d": 4, "e": 5};
 
     expect(await table.append(dummyData), 2); // Write test
 
@@ -146,13 +138,7 @@ void main() async {
       'nullValue',
     ]);
 
-    final searchingFor = {
-      'a': 1,
-      'b': 2,
-      'c': 3,
-      'd': 4,
-      'e': 5,
-    };
+    final searchingFor = {'a': 1, 'b': 2, 'c': 3, 'd': 4, 'e': 5};
     expect(
       await table.findEntry(
         (entry, index) =>
