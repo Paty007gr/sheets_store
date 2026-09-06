@@ -130,8 +130,6 @@ class SheetInteractionHandler {
     String range, {
     MajorDimension dimension = MajorDimension.columns,
   }) async {
-    notationCheck(range);
-
     final res = await spreadsheetValues.get(
       spreadsheetId,
       '$sheetName!$range',
@@ -172,8 +170,6 @@ class SheetInteractionHandler {
     List<List<String>> values, {
     MajorDimension majorDimension = MajorDimension.columns,
   }) async {
-    notationCheck(range);
-
     final res = await spreadsheetValues.update(
       ValueRange(values: values, majorDimension: majorDimension.name),
       valueInputOption: "USER_ENTERED",
@@ -193,14 +189,6 @@ class SheetInteractionHandler {
     );
 
     return res.updates?.updatedCells != null ? true : false;
-  }
-
-  /// Check if a string is A1 notation valid
-  /// without it's sheet name. If so, throw an error
-  void notationCheck(String input) {
-    if (noSheetA1.hasMatch(input)) return;
-
-    throw ArgumentError.value(input);
   }
 
   /// Matches any string that is a column
@@ -340,7 +328,7 @@ class SheetColumn<T extends Object?> extends SheetInteractionHandler {
   /// Appends a value at the end of the column
   Future<bool> append(T value) async {
     final encoded = _encode(value);
-    final res = await appendAtRange(column, [
+    final res = await appendAtRange('$column:$column', [
       [encoded],
     ]);
 
