@@ -1,3 +1,11 @@
+## 2.2.0
+
+- Reworked `SheetsColumn` and added more useful methods
+- Removed notationCheck from `SheetInteractionHandler` entirely. Any invalid range errors now only are thrown after google's api has returned a error response
+- Bumped googleapis package to ^17.0.0
+- Fixed [#2](https://github.com/Paty007gr/sheets_store/issues/2)
+- Added a reference to the auto generated API docs and a features section in the README
+
 ## 2.1.1
 
 - Bumped dependencies and dart version (now ^3.8.0)

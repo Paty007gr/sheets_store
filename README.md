@@ -1,5 +1,13 @@
 An easy to use and simple way to store data in google sheets
 
+## Features
+
+- Use a single column as a list (SheetColumn)
+- Use two columns as a key/value pair (SheetMap)
+- Use a whole sheet to store each value of a map in it's own column (SheetTable)
+
+Always refer to the [API Reference](https://pub.dev/documentation/sheets_store/latest/) for a detailed look into the package's capabilities
+
 ## Usage
 
 To use this package you first need to set up a google cloud project. Then enable the Google Sheets API in the APIs & Services. Once you have done that go to credentials and create a service account with a JSON key. Put the JSON key in your workspace directory. 
@@ -49,9 +57,6 @@ myColumn.set(0, 'newValue'); // Set/Update a value at an index
 myColumn.append('newestValue'); // Add to the first free row in the column
 myColumn.delete(0); // Delete Values to clear cells
 myColumn.find(...); // find a value based on a test function
-
-// more functions included. Look into the code or the list of methods
-// provided by your intellisense/autocomplete.
 ```
 
 ## Maps
@@ -79,9 +84,6 @@ map.has('age'); // false
 map.set('age', 92);
 
 map.delete('key'); // Delete a key with its value
-
-// more functions included. Look into the code or the list of methods
-// provided by your intellisense/autocomplete.
 ```
 
 ## Tables
@@ -122,6 +124,4 @@ table.clear();
 
 // Delete all values in row 1
 table.deleteEntry(1);
-
-// many more functions included. View source code or intellisense/autocorrect
 ```
