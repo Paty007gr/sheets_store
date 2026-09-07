@@ -22,22 +22,28 @@ void main() async {
   );
 
   test('Test SheetColumn', () async {
+    await sheetColumn.clear();
+    expect(await sheetColumn.isEmpty, true);
+    expect(await sheetColumn.firstOrNull, null);
+
     expect(await sheetColumn.append('Entry1'), true);
-    expect(await sheetColumn.at(0), 'Entry1');
+    expect(await sheetColumn.appendAll(['Entry98', 'Entry99']), true);
+    expect(await sheetColumn.first, 'Entry1');
+    expect(await sheetColumn.isNotEmpty, true);
 
     expect(
       await sheetColumn.find((value, index) => value == 'Entry99'),
       'Entry99',
     );
 
-    expect(await sheetColumn.length, 5);
+    expect(await sheetColumn.length, 3);
 
     final randomNumber = DateTime.now().second;
-    expect(await sheetColumn.set(2, 'Test Entry$randomNumber'), true);
+    expect(await sheetColumn.set(3, 'Test Entry$randomNumber'), true);
 
-    expect(await sheetColumn.delete(5), true);
+    expect(await sheetColumn.delete(3), true);
 
-    expect(await sheetColumn.bulkRead(0, 1), ['Entry1', 'Entry99']);
+    expect(await sheetColumn.bulkRead(1, 2), ['Entry98', 'Entry99']);
 
     final randomNum2 = DateTime.now().second;
     expect(
@@ -47,6 +53,19 @@ void main() async {
       ]),
       true,
     );
+
+    final beforeShuffle = await sheetColumn.values;
+    await sheetColumn.shuffle();
+    final afterShuffle = await sheetColumn.values;
+    final isDifferent = beforeShuffle != afterShuffle;
+    expect(isDifferent, true);
+
+    await sheetColumn.removeElement('Entry1');
+    expect(await sheetColumn.find((value, index) => value == 'Entry1'), null);
+
+    final currentItems = await sheetColumn.values;
+    await sheetColumn.removeLast();
+    expect(await sheetColumn.at(currentItems.length - 1), null);
   });
 
   test('Test SheetMap', () async {
