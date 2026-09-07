@@ -119,10 +119,12 @@ class SheetInteractionHandler {
   }
 
   Future<bool> appendAtRange(String range, List<List<String>> values) async {
+    final fullRange = '$sheetName!$range';
+
     final res = await spreadsheetValues.append(
-      ValueRange(values: values, majorDimension: 'COLUMNS'),
+      ValueRange(values: values, majorDimension: 'COLUMNS', range: fullRange),
       spreadsheetId,
-      '$sheetName!$range',
+      fullRange,
       valueInputOption: "USER_ENTERED",
     );
 
