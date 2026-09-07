@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:googleapis/sheets/v4.dart';
-import 'package:sheets_store/src/sheet_interaction_handler.dart';
 import 'package:sheets_store/sheets_store.dart';
 
 /// Treats a whole sheet as a giant map where each column is a key

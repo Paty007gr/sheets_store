@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:sheets_store/src/sheet_interaction_handler.dart';
 import 'package:sheets_store/sheets_store.dart';
 
 /// A map of keys and values. Very similar to the javascript Map
